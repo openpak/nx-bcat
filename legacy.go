@@ -41,18 +41,19 @@ func legacy(w http.ResponseWriter, r *http.Request) {
 	case strings.HasSuffix(p, "/topics"):
 		log.Printf("%s topics %s (empty)", logPrefix, p)
 		emptyDoc(w, r, newsformat.Map{
-			{Key: "service_status", Value: "in_service"},
-			{Key: "topic_id", Value: ""},
-			{Key: "na_required", Value: false},
-			{Key: "test_distribution", Value: false},
+			// Keys sorted, as nx-baas's encoder wrote them: the ETag stays the same.
 			{Key: "directories", Value: []any{}},
+			{Key: "na_required", Value: false},
+			{Key: "service_status", Value: "in_service"},
+			{Key: "test_distribution", Value: false},
+			{Key: "topic_id", Value: ""},
 		})
 	// Data list: $.required_application_version, $.directories[*].
 	case strings.Contains(p, "/v1/list/"):
 		log.Printf("%s list %s (empty)", logPrefix, p[strings.LastIndex(p, "/")+1:])
 		emptyDoc(w, r, newsformat.Map{
-			{Key: "required_application_version", Value: uint64(0)},
 			{Key: "directories", Value: []any{}},
+			{Key: "required_application_version", Value: uint64(0)},
 		})
 	default:
 		log.Printf("%s !! UNHANDLED bcat route %s%s", logPrefix, hostOf(r), p)

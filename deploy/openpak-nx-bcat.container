@@ -1,0 +1,39 @@
+# Sample quadlet for nx-bcat -- not applied anywhere. Copy to
+# ~/.config/containers/systemd/openpak-nx-bcat.container on the box (README.md, "Cut-over").
+# Keys go INSIDE [Container]: appended at the end of the file they land in [Install] and are
+# silently ignored.
+[Unit]
+Description=OpenPak nx-bcat (Switch BCAT: News channels, game data, push; split from nx-baas and news)
+After=openpak-nx-baas.service openpak-news-experiment.service
+
+[Container]
+ContainerName=openpak-nx-bcat
+Image=ghcr.io/openpak/nx-bcat:latest
+AutoUpdate=registry
+Network=openpak
+# The shared env file carries NX_INTERNAL_KEY and, after the Penne cut-over, NX_PENNE_URL.
+EnvironmentFile=%h/openpak/deploy/.env
+Environment=NX_CORE_URL=http://openpak-nx-baas:20070
+Environment=NEWS_ADMIN_URL=http://openpak-news-experiment:20043
+Environment=NEWS_DATASET_URL=http://openpak-bcat:20044
+Environment=NX_ADDR=:21000
+Environment=NX_API_ADDR=:20070
+Environment=NX_DATA=/app/data
+Environment=NX_CA_DIR=/ca
+Environment=BCAT_SIGNING_KEY=/run/secrets/news-signing-key
+Environment=BCAT_AES_KEY=/run/secrets/news-aes-key
+# The same podman secrets news-experiment mounts.
+Secret=news-signing-key,type=mount,target=/run/secrets/news-signing-key,mode=0400
+Secret=news-aes-key,type=mount,target=/run/secrets/news-aes-key,mode=0400
+Secret=news-admin-key,type=env,target=NEWS_ADMIN_KEY
+Volume=openpak-nx-bcat-data:/app/data
+Volume=%h/openpak/deploy/ca:/ca:ro
+ReadOnly=true
+NoNewPrivileges=true
+DropCapability=all
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

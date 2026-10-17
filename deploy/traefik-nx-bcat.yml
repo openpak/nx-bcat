@@ -1,0 +1,22 @@
+# Traefik dynamic.yml snippet for nx-bcat -- not applied anywhere. Merge the router and the
+# service into ~/openpak/deploy/traefik/dynamic.yml (tcp: section). It replaces the
+# news-experiment router for bcat-topics-lp1 (remove that one) and takes bcat-list and
+# bcat-data out of nx-baas's path. TLS stays passthrough: nx-bcat terminates with OpenPak-CA
+# certificates. All three names also work through nx-baas's forward (NX_BCAT_URL).
+tcp:
+  routers:
+    nx-bcat:
+      entryPoints: [console]
+      rule: >-
+        HostSNI(`bcat-list-lp1.cdn.nintendo.net`) ||
+        HostSNI(`bcat-topics-lp1.cdn.nintendo.net`) ||
+        HostSNI(`bcat-data-lp1.cdn.nintendo.net`)
+      priority: 1000
+      service: nx-bcat
+      tls:
+        passthrough: true
+  services:
+    nx-bcat:
+      loadBalancer:
+        servers:
+          - address: "openpak-nx-bcat:21000"

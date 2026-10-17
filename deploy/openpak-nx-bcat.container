@@ -16,6 +16,7 @@ EnvironmentFile=%h/openpak/deploy/.env
 Environment=NX_CORE_URL=http://openpak-nx-baas:20070
 Environment=NEWS_ADMIN_URL=http://openpak-news-experiment:20043
 Environment=NEWS_DATASET_URL=http://openpak-bcat:20044
+Environment=NX_BCAT_STATIC_DIR=/fixtures
 Environment=NX_ADDR=:21000
 Environment=NX_API_ADDR=:20070
 Environment=NX_DATA=/app/data
@@ -27,6 +28,8 @@ Secret=news-signing-key,type=mount,target=/run/secrets/news-signing-key,mode=040
 Secret=news-aes-key,type=mount,target=/run/secrets/news-aes-key,mode=0400
 Secret=news-admin-key,type=env,target=NEWS_ADMIN_KEY
 Volume=openpak-nx-bcat-data:/app/data
+# The file-based signed tree news-experiment serves today (its /fixtures volume).
+Volume=%h/openpak/deploy/news-experiment/cdn-v016:/fixtures:ro
 Volume=%h/openpak/deploy/ca:/ca:ro
 ReadOnly=true
 NoNewPrivileges=true

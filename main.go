@@ -122,7 +122,7 @@ func main() {
 	}
 	s := &server{push: p}
 	s.tree = &tree{
-		dir: data + "/builds", news: newUpstream(adminURL, os.Getenv("NEWS_ADMIN_KEY")), keys: k,
+		dir: data + "/builds", static: os.Getenv("NX_BCAT_STATIC_DIR"), news: newUpstream(adminURL, os.Getenv("NEWS_ADMIN_KEY")), keys: k,
 		sw: &newsexperiment.Switch{}, fallback: http.HandlerFunc(legacy), push: p.pushAll,
 	}
 	if err := os.MkdirAll(s.tree.dir, 0755); err != nil {

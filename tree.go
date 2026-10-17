@@ -26,6 +26,7 @@ import (
 
 type tree struct {
 	dir      string // builds/r<revision>/{seed,signed}, state.json
+	static   string // pre-signed tree served until news publishes a build ("" = none)
 	news     *upstream
 	keys     *keys
 	sw       *newsexperiment.Switch
@@ -48,21 +49,35 @@ func (t *tree) revDir(rev int64) string { return filepath.Join(t.dir, fmt.Sprint
 // consoles' lists answering.
 func (t *tree) load() {
 	raw, err := os.ReadFile(filepath.Join(t.dir, "state.json"))
-	if err != nil {
-		return
-	}
 	var st treeState
-	if json.Unmarshal(raw, &st) != nil || st.Revision == 0 {
+	if err != nil || json.Unmarshal(raw, &st) != nil || st.Revision == 0 {
+		t.loadStatic()
 		return
 	}
 	h, err := newsexperiment.Handler(filepath.Join(t.revDir(st.Revision), "signed"), nil, t.fallback)
 	if err != nil {
 		log.Printf("%s stored build r%d does not load: %v", logPrefix, st.Revision, err)
+		t.loadStatic()
 		return
 	}
 	t.sw.Store(h)
 	t.revision, t.lists = st.Revision, st.Lists
 	log.Printf("%s serving stored build r%d", logPrefix, st.Revision)
+}
+
+// loadStatic serves the pre-signed tree news was serving before its first publish
+// (NX_BCAT_STATIC_DIR, the file-based cdn-vNNN builds). A later published build replaces it.
+func (t *tree) loadStatic() {
+	if t.static == "" {
+		return
+	}
+	h, err := newsexperiment.Handler(t.static, nil, t.fallback)
+	if err != nil {
+		log.Printf("%s static tree %s: %v", logPrefix, t.static, err)
+		return
+	}
+	t.sw.Store(h)
+	log.Printf("%s serving static tree %s", logPrefix, t.static)
 }
 
 // sync pulls the build news serves now, if it is not the one already loaded.

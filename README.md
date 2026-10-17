@@ -43,6 +43,7 @@ stored build when news is down. A first load pushes nothing (every console fetch
 | `BCAT_SIGNING_KEY`, `BCAT_AES_KEY` | `/run/secrets/bcat-signing-key`, `/run/secrets/bcat-aes-key` | news's `NEWS_SIGNING_KEY`/`NEWS_AES_KEY` files |
 | `NX_ADDR` | `:21000` | TLS for consoles (Traefik SNI passthrough) |
 | `NX_API_ADDR` | `:20070` | plain HTTP: `/internal/bcat/sync`, `/internal/news/push`, forwarded console routes, `/openpak/v1/local/*` |
+| `NX_BCAT_STATIC_DIR` | | a pre-signed tree (news's `-dir`, e.g. `cdn-v016`) served until news publishes its first build |
 | `NX_DATA` | `/data` | `builds/` (the loaded tree, `state.json`) |
 | `NX_CA_DIR` | `/data/ca` | `ca.pem`/`ca.key` that sign the listener's certificates |
 | `NX_BCAT_DATA_ORIGIN` | `https://bcat-data-lp1.cdn.nintendo.net` | origin in native file URLs (159-char firmware limit) |

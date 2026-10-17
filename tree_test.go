@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"nx-bcat/newsexperiment"
@@ -92,5 +93,24 @@ func TestSyncPullsSignsAndPushesChangedTopics(t *testing.T) {
 	}
 	if len(pushed) != 1 || pushed[0][0] != "openpak_news" {
 		t.Fatalf("pushed %v", pushed)
+	}
+}
+
+// Before news publishes anything, the pre-signed static tree is what the consoles get.
+func TestStaticTreeServesUntilFirstBuild(t *testing.T) {
+	key, _ := rsa.GenerateKey(rand.Reader, 2048)
+	k := &keys{signing: key, verify: &key.PublicKey, aes: make([]byte, 16)}
+	seed, static := t.TempDir(), t.TempDir()
+	cat, _ := newsformat.Encode([]any{})
+	os.WriteFile(seed+"/catalog.msgpack", cat, 0644)
+	if _, err := k.signTree(seed, static); err != nil {
+		t.Fatal(err)
+	}
+	tr := &tree{dir: t.TempDir(), static: static, sw: &newsexperiment.Switch{}}
+	tr.load()
+	rec := httptest.NewRecorder()
+	tr.sw.ServeHTTP(rec, httptest.NewRequest("GET", "/api/nx/v1/topics/catalog", nil))
+	if rec.Code != 200 {
+		t.Fatalf("static catalog: %d", rec.Code)
 	}
 }

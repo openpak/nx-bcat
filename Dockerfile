@@ -5,13 +5,15 @@ FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS build
 ARG TARGETOS TARGETARCH
 WORKDIR /src
 COPY . .
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -mod=vendor -trimpath -ldflags="-s -w" -o /out/app .
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -mod=vendor -trimpath -ldflags="-s -w" -o /out/app . \
+ && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -mod=vendor -trimpath -ldflags="-s -w" -o /out/s2rotation ./cmd/s2rotation
 
 FROM alpine:3.20
 RUN apk add --no-cache ca-certificates tzdata \
  && adduser -D -u 65532 -h /app app
 WORKDIR /app
 COPY --from=build /out/app /app/app
+COPY --from=build /out/s2rotation /app/s2rotation
 
 RUN mkdir -p /app/data && chown -R 65532:65532 /app
 # Runs unprivileged: rootless podman maps this uid into the host's subuid range, and every

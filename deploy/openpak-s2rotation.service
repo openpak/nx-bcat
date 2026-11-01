@@ -1,0 +1,10 @@
+[Unit]
+Description=Regenerate the Splatoon 2 BCAT rotation (vsdata, coopdata) and reload bcatserve if it changed
+After=openpak-bcat.service
+
+[Service]
+Type=oneshot
+# Runs as the host user (uid 0 in the rootless container) so the dataset files keep their owner.
+ExecStart=/bin/sh -c 'd=%h/openpak/deploy/bcat/datasets/0100f8f0000a2000/manifest.json; before=$(sha256sum "$d"); \
+ /usr/bin/podman run --rm --user 0:0 --entrypoint /app/s2rotation -v %h/openpak/deploy/bcat/datasets:/datasets ghcr.io/openpak/nx-bcat:latest -root /datasets; \
+ [ "$before" = "$(sha256sum "$d")" ] || systemctl --user restart openpak-bcat.service'

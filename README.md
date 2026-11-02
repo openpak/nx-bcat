@@ -32,7 +32,6 @@ Tests:
 - [Protocol](docs/protocol.md)
 - [Deploy](docs/deploy.md)
 - [Splatoon 2 rotation generator](docs/splatoon2-rotation.md)
-- [Notes](docs/notes.md)
 
 ## Licence
 

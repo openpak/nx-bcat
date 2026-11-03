@@ -25,6 +25,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/openpak/nx-common/httplog"
 	"github.com/openpak/nx-common/internalkey"
 	"github.com/openpak/nx-common/nxapi"
 	"github.com/openpak/nx-common/nxhttp"
@@ -48,8 +49,12 @@ type server struct {
 
 // ServeHTTP answers the bcat hosts, as nx-baas's bcat() did; any other host is misrouted.
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	httplog.Wrap(logPrefix, httplog.Options{}, http.HandlerFunc(s.serve)).ServeHTTP(w, r)
+}
+
+// serve is ServeHTTP's body; ServeHTTP adds the access line (status, duration, never the query).
+func (s *server) serve(w http.ResponseWriter, r *http.Request) {
 	host, p := hostOf(r), r.URL.Path
-	log.Printf("%s %s %s%s", logPrefix, r.Method, host, r.URL.RequestURI())
 	switch {
 	case p == "/healthz":
 		writeJSON(w, 200, map[string]any{"status": "ok", "service": "nx-bcat"})
@@ -98,7 +103,7 @@ func (s *server) internalAPI() http.Handler {
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 200, map[string]any{"status": "ok", "service": "nx-bcat"})
 	})
-	return nxhttp.SplitListener(s, mux)
+	return nxhttp.SplitListener(s, httplog.Wrap(logPrefix, httplog.Options{}, mux))
 }
 
 func main() {

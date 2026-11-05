@@ -105,7 +105,7 @@ func TestNativeAndEmulatorSharePayloadBytes(t *testing.T) {
 	empty := httptest.NewRecorder()
 	mux.ServeHTTP(empty, httptest.NewRequest("GET", "/api/nx/v1/list/nx_data_"+title, nil))
 	payload, err = bcatcontainer.Verify(empty.Body.Bytes(), nil, &key.PublicKey)
-	expected, _ := newsformat.Encode(newsformat.Map{{Key: "required_application_version", Value: uint64(0)}, {Key: "directories", Value: []any{}}})
+	expected, _ := newsformat.Encode(newsformat.Map{{Key: "topic_id", Value: "nx_data_" + title}, {Key: "service_status", Value: "in_service"}, {Key: "na_required", Value: false}, {Key: "test_distribution", Value: false}, {Key: "required_application_version", Value: uint64(0)}, {Key: "directories", Value: []any{}}})
 	if empty.Code != 200 || err != nil || !bytes.Equal(payload, expected) {
 		t.Fatalf("expired list: %d %v", empty.Code, err)
 	}

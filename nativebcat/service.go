@@ -42,7 +42,7 @@ type Service struct {
 	source Source
 	key    *rsa.PrivateKey
 	origin string
-	empty  []byte
+	empty  map[string][]byte // signed empty list per title (topic_id carries the title)
 	mutex  sync.Mutex
 	cache  map[string]*snapshot
 }
@@ -53,16 +53,38 @@ func NewService(src Source, key *rsa.PrivateKey, origin string) (*Service, error
 		u.Path != "" || u.RawQuery != "" || u.Fragment != "" {
 		return nil, errors.New("native data origin must be a bare HTTPS origin")
 	}
-	s := &Service{source: src, key: key, origin: origin, cache: map[string]*snapshot{}}
-	s.empty, err = s.signList([]any{})
-	if err != nil {
+	s := &Service{source: src, key: key, origin: origin, cache: map[string]*snapshot{}, empty: map[string][]byte{}}
+	if _, err := s.emptyList("0000000000000000"); err != nil {
 		return nil, err
 	}
 	return s, nil
 }
 
-func (s *Service) signList(directories []any) ([]byte, error) {
+// emptyList is the signed list a title with nothing published gets.
+func (s *Service) emptyList(title string) ([]byte, error) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	if b, ok := s.empty[title]; ok {
+		return b, nil
+	}
+	b, err := s.signList(title, []any{})
+	if err != nil {
+		return nil, err
+	}
+	s.empty[title] = b
+	return b, nil
+}
+
+// signList encodes the data list. The firmware's list parser refuses the document at the start of
+// "directories" unless topic_id, service_status, na_required and required_application_version have
+// all been read before it (23.0.1 bcat, the "$.directories[]" callback), so they come first and
+// "directories" last. Without them every list, even an empty one, fails the sync with 2122-0203.
+func (s *Service) signList(title string, directories []any) ([]byte, error) {
 	plain, err := newsformat.Encode(newsformat.Map{
+		{Key: "topic_id", Value: "nx_data_" + title},
+		{Key: "service_status", Value: "in_service"},
+		{Key: "na_required", Value: false},
+		{Key: "test_distribution", Value: false},
 		{Key: "required_application_version", Value: uint64(0)},
 		{Key: "directories", Value: directories},
 	})
@@ -147,7 +169,7 @@ func (s *Service) compile(ctx context.Context, title string) (*snapshot, error) 
 			{Key: "data_list", Value: groups[name]},
 		})
 	}
-	result.list, err = s.signList(directories)
+	result.list, err = s.signList(title, directories)
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +196,12 @@ func (s *Service) RegisterRoutes(mux *http.ServeMux) {
 		}
 		snapshot, err := s.compile(r.Context(), title)
 		if errors.Is(err, ErrNotFound) {
-			serve(w, r, s.empty, time.Time{})
+			empty, err := s.emptyList(title)
+			if err != nil {
+				http.Error(w, "native BCAT data unavailable", http.StatusInternalServerError)
+				return
+			}
+			serve(w, r, empty, time.Time{})
 		} else if err != nil {
 			http.Error(w, "native BCAT data unavailable", http.StatusInternalServerError)
 		} else {
